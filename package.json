@@ -1,0 +1,79 @@
+{
+  "name": "ahz-tv",
+  "version": "1.5.7",
+  "description": "Ahz TV：本地视频播放器、手机投送与内置 Ahz-Stream 接收",
+  "main": "src/main.js",
+  "private": true,
+  "author": "Ahz TV contributors",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && npm test",
+    "test:smoke": "electron . --smoke-test",
+    "brand:receiver": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/brand-receiver.ps1",
+    "icon": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/generate-icon.ps1",
+    "dist": "npm run brand:receiver && npm run icon && electron-builder",
+    "dist:portable": "npm run brand:receiver && npm run icon && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "34.5.8",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.local.ahz.tv",
+    "productName": "Ahz TV",
+    "artifactName": "Ahz-TV-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/airplay-windows",
+        "to": "ahz-stream",
+        "filter": [
+          "**/*",
+          "!identity.key",
+          "!imgui.ini"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "requestedExecutionLevel": "asInvoker",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Ahz-TV-${version}-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ahz TV",
+      "artifactName": "Ahz-TV-${version}-setup.${ext}"
+    }
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}

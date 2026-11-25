@@ -1,0 +1,14 @@
+node_modules/
+dist/
+artifacts/
+build/icon.png
+*.log
+*.tmp
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+vendor/airplay-windows/identity.key
+vendor/airplay-windows/imgui.ini
