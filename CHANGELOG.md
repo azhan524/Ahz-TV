@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.9 - 2026-11-29
+
+- Added readable receiver quality presets from 480p through 8K.
+- Added Original as the default quality with device-selected native resolution.
+- Applied the selected quality directly to the Ahz-Stream configuration.
+
 ## 1.5.8 - 2026-11-29
 
 - Added adaptive framing controls for the projection view.

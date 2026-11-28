@@ -64,3 +64,17 @@ test('capture source matching recognizes the renamed Ahz-Stream window', () => {
 
   assert.match(main, /ahz\[\\s-\]\*stream/);
 });
+
+test('receiver quality presets use readable labels and default to original', () => {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  const renderer = fs.readFileSync(rendererPath, 'utf8');
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+
+  for (const label of ['480p', '720p', '1080p', '1.5K', '2K', '4K', '8K', '原画（推荐）']) {
+    assert.match(html, new RegExp(label));
+  }
+  assert.match(html, /value="original" selected/);
+  assert.match(renderer, /ahz-tv:airplay-quality/);
+  assert.match(main, /'8k': \{ width: 7680, height: 4320 \}/);
+  assert.match(main, /original: \{ width: 3840, height: 2160 \}/);
+});

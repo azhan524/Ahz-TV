@@ -109,6 +109,8 @@ const connectProjectionWindow = document.querySelector('#connectProjectionWindow
 const startAirplayExtension = document.querySelector('#startAirplayExtension');
 const connectAirplayFullscreen = document.querySelector('#connectAirplayFullscreen');
 const connectAirplayFullscreenLabel = document.querySelector('#connectAirplayFullscreenLabel');
+const airplayQuality = document.querySelector('#airplayQuality');
+const airplayQualityNote = document.querySelector('#airplayQualityNote');
 const stopAirplayExtension = document.querySelector('#stopAirplayExtension');
 const airplayExtensionState = document.querySelector('#airplayExtensionState');
 const viewAirplayNotice = document.querySelector('#viewAirplayNotice');
@@ -155,6 +157,19 @@ let phoneCastStarting = false;
 let phoneCastRefreshTimer = null;
 let projectionStream = null;
 let projectionFrameMode = localStorage.getItem('ahz-tv:projection-frame') || 'auto';
+let airplayQualityValue = localStorage.getItem('ahz-tv:airplay-quality') || 'original';
+let airplayExtensionRunning = false;
+
+const AIRPLAY_QUALITY_NOTES = {
+  '480p': '480p：低带宽优先，适合网络不稳定时使用。',
+  '720p': '720p：流畅优先，细节较少。',
+  '1080p': '1080p：常用高清画质，兼顾清晰度与稳定性。',
+  '1.5k': '1.5K：2560×1440 接收上限，适合日常高清投屏。',
+  '2k': '2K：2880×1620 接收上限，需要稳定局域网。',
+  '4k': '4K：3840×2160 接收上限，清晰度更高、带宽占用更大。',
+  '8k': '8K：7680×4320 接收上限；设备不支持时会发送可用的较低分辨率。',
+  original: '原画：由手机发送自身可用的最高分辨率；实际画质仍受 AirPlay 实时压缩影响。'
+};
 let toastTimer = null;
 let loadingTimer = null;
 
@@ -784,12 +799,35 @@ function renderAirplayExtensionStatus(status) {
     return;
   }
 
+  airplayExtensionRunning = Boolean(status.running);
   startAirplayExtension.disabled = status.running;
   stopAirplayExtension.disabled = !status.running;
   airplayExtensionState.classList.toggle('is-running', status.running);
   airplayExtensionState.textContent = status.running
     ? `接收器运行中 · 请选择 ${status.receiverName}`
     : 'Ahz-Stream 未启动';
+}
+
+function setAirplayQualityValue(value, { persist = true, sync = true, notify = false } = {}) {
+  airplayQualityValue = Object.hasOwn(AIRPLAY_QUALITY_NOTES, value) ? value : 'original';
+  airplayQuality.value = airplayQualityValue;
+  airplayQualityNote.textContent = AIRPLAY_QUALITY_NOTES[airplayQualityValue];
+  if (persist) {
+    localStorage.setItem('ahz-tv:airplay-quality', airplayQualityValue);
+  }
+  if (sync) {
+    window.desktop.setAirplayQuality(airplayQualityValue).catch(() => {
+      showToast('画质设置写入失败，请稍后重试', 4200);
+    });
+  }
+  if (notify) {
+    showToast(
+      airplayExtensionRunning
+        ? '投屏画质已保存；手机重新连接 Ahz-Stream 后生效'
+        : '投屏画质已保存',
+      4200
+    );
+  }
 }
 
 async function refreshAirplayExtensionStatus() {
@@ -804,7 +842,8 @@ async function launchAirplayExtension() {
   startAirplayExtension.disabled = true;
   airplayExtensionState.textContent = '正在启动内置接收器…';
   try {
-    const status = await window.desktop.startAirplay();
+    await window.desktop.setAirplayQuality(airplayQualityValue);
+    const status = await window.desktop.startAirplay({ quality: airplayQualityValue });
     renderAirplayExtensionStatus(status);
     showToast('Ahz-Stream 已启动，请在 iPhone 控制中心选择 Ahz-Stream', 5200);
   } catch (error) {
@@ -902,9 +941,12 @@ async function connectProjectionCapture({ fullScreen = false } = {}) {
 
 async function launchAirplayFullscreenCapture() {
   try {
+    await window.desktop.setAirplayQuality(airplayQualityValue);
     const status = await window.desktop.getAirplayStatus();
     if (!status.running) {
-      renderAirplayExtensionStatus(await window.desktop.startAirplay());
+      renderAirplayExtensionStatus(
+        await window.desktop.startAirplay({ quality: airplayQualityValue })
+      );
     }
     await connectProjectionCapture({ fullScreen: true });
   } catch (error) {
@@ -1062,6 +1104,9 @@ openProjectionSettings.addEventListener('click', async () => {
 });
 connectProjectionWindow.addEventListener('click', connectProjectionCapture);
 startAirplayExtension.addEventListener('click', launchAirplayExtension);
+airplayQuality.addEventListener('change', () => {
+  setAirplayQualityValue(airplayQuality.value, { notify: true });
+});
 connectAirplayFullscreen.addEventListener('click', launchAirplayFullscreenCapture);
 stopAirplayExtension.addEventListener('click', haltAirplayExtension);
 viewAirplayNotice.addEventListener('click', () => window.desktop.openAirplayNotice());
@@ -1337,5 +1382,6 @@ window.desktop.getState().then((state) => {
 });
 
 setProjectionFrameMode(projectionFrameMode, { persist: false });
+setAirplayQualityValue(airplayQualityValue, { persist: false, sync: false });
 showHome('home');
 refreshAirplayExtensionStatus();

@@ -84,7 +84,18 @@ function setIniValue(contents, key, value) {
   return `${contents.replace(/\s*$/, '')}\n${key}=${value}\n`;
 }
 
-function ensureAirplayStreamDefaults() {
+const AIRPLAY_QUALITY_PROFILES = Object.freeze({
+  '480p': { width: 854, height: 480 },
+  '720p': { width: 1280, height: 720 },
+  '1080p': { width: 1920, height: 1080 },
+  '1.5k': { width: 2560, height: 1440 },
+  '2k': { width: 2880, height: 1620 },
+  '4k': { width: 3840, height: 2160 },
+  '8k': { width: 7680, height: 4320 },
+  original: { width: 3840, height: 2160 }
+});
+
+function ensureAirplayStreamDefaults(quality = 'original') {
   const settingsDirectory = path.join(app.getPath('appData'), 'AirPlay-Windows');
   const settingsPath = path.join(settingsDirectory, 'settings.ini');
   fs.mkdirSync(settingsDirectory, { recursive: true });
@@ -118,7 +129,11 @@ function ensureAirplayStreamDefaults() {
       settings = setIniValue(settings, key, value);
     }
   }
+  const profile = AIRPLAY_QUALITY_PROFILES[quality] || AIRPLAY_QUALITY_PROFILES.original;
+  settings = setIniValue(settings, 'mirror_width', String(profile.width));
+  settings = setIniValue(settings, 'mirror_height', String(profile.height));
   fs.writeFileSync(settingsPath, settings, 'utf8');
+  return profile;
 }
 
 function airplayExtensionStatus() {
@@ -136,7 +151,7 @@ function sendAirplayExtensionStatus() {
   sendToMainWindow('airplay:status', airplayExtensionStatus());
 }
 
-function startAirplayExtension() {
+function startAirplayExtension({ quality = 'original' } = {}) {
   if (airplayExtensionProcess && airplayExtensionProcess.exitCode === null) {
     return airplayExtensionStatus();
   }
@@ -146,7 +161,7 @@ function startAirplayExtension() {
     throw new Error('内置 Ahz-Stream 接收器文件缺失');
   }
 
-  ensureAirplayStreamDefaults();
+  ensureAirplayStreamDefaults(quality);
   airplayExtensionProcess = spawn(executable, [], {
     cwd: airplayExtensionDirectory(),
     windowsHide: false,
@@ -813,7 +828,8 @@ ipcMain.handle('phonecast:list-capture-sources', async () => {
     .slice(0, 80);
 });
 
-ipcMain.handle('airplay:start', () => startAirplayExtension());
+ipcMain.handle('airplay:start', (_event, options) => startAirplayExtension(options));
+ipcMain.handle('airplay:set-quality', (_event, quality) => ensureAirplayStreamDefaults(quality));
 ipcMain.handle('airplay:stop', () => stopAirplayExtension());
 ipcMain.handle('airplay:status', () => airplayExtensionStatus());
 ipcMain.handle('airplay:open-notice', async () => {

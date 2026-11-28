@@ -458,6 +458,20 @@
               <div>
                 <strong>iPhone 内置 Ahz-Stream</strong>
                 <p>启动 Ahz TV 自带接收器，然后在 iPhone 控制中心选择“Ahz-Stream”。GPU 解码支持最高 60 FPS。</p>
+                <label class="airplay-quality-field" for="airplayQuality">
+                  <span>投屏画质</span>
+                  <select id="airplayQuality">
+                    <option value="480p">480p</option>
+                    <option value="720p">720p</option>
+                    <option value="1080p">1080p</option>
+                    <option value="1.5k">1.5K</option>
+                    <option value="2k">2K</option>
+                    <option value="4k">4K</option>
+                    <option value="8k">8K</option>
+                    <option value="original" selected>原画（推荐）</option>
+                  </select>
+                </label>
+                <p class="airplay-quality-note" id="airplayQualityNote">原画：由手机发送自身可用的最高分辨率；实际画质仍受 AirPlay 实时压缩影响。</p>
                 <div class="phone-guide-actions">
                   <button id="startAirplayExtension">启动 Ahz-Stream</button>
                   <button class="airplay-fullscreen-button" id="connectAirplayFullscreen">
