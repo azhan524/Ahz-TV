@@ -1,4 +1,4 @@
-# Ahz TV 1.6.0
+# Ahz TV 1.7.0
 
 - 状态：公开首发候选 / Open-source release candidate
 - 日期：`2026-11-29`
@@ -16,16 +16,16 @@ npm run dist
 
 生成：
 
-- `dist/Ahz-TV-1.6.0-portable.exe`
-- `dist/Ahz-TV-1.6.0-setup.exe`
+- `dist/Ahz-TV-1.7.0-portable.exe`
+- `dist/Ahz-TV-1.7.0-setup.exe`
 
 发布前应运行 `npm run check`，并在产物生成后记录 SHA-256。
 
 SHA-256：
 
 ```text
-1ABB79B1010D870253D845B7824D8319640330DBC3B9A241B767F88A52E1766E  Ahz-TV-1.6.0-portable.exe
-6F0187EF170996988B00AC8C8F6CBD528E0CB2AFEF044D31098F9E9E27F5217D  Ahz-TV-1.6.0-setup.exe
+9DF95BAD7E1D24839F857A43346376D7FE9A4D36328918B5F4ABD906B8042D10  Ahz-TV-1.7.0-portable.exe
+FFC382D853D3B041D7E8CD95C71EB398A32ADD47519317D6893FBBB596805AC2  Ahz-TV-1.7.0-setup.exe
 ```
 
 ## 本版能力
@@ -40,6 +40,9 @@ SHA-256：
 - 480p、720p、1080p、1.5K、2K、4K、8K、原画画质选择，默认原画
 - 接收器监听、连接、实际编码和分辨率状态
 - 脱敏诊断导出与端口异常自动恢复
+- Electron 45.5.0 安全升级
+- GitHub 新版本自动检查与手动下载提示
+- Internet Archive、Wikimedia Commons、Blender Open Movies 开放媒体入口
 - 最近播放、收藏和第三方官方网站入口
 - 外部应用协议拦截
 - 本机配对身份和窗口布局文件默认排除

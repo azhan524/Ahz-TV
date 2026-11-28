@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('desktop', {
   openAirplayNotice: () => ipcRenderer.invoke('airplay:open-notice'),
   getSettings: () => ipcRenderer.invoke('app-settings:get'),
   updateSettings: (patch) => ipcRenderer.invoke('app-settings:update', patch),
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
   onWindowState: (callback) => {
     const listener = (_event, state) => callback(state);
     ipcRenderer.on('window:state', listener);

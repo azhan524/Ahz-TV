@@ -1,6 +1,6 @@
 {
   "name": "ahz-tv",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Ahz TV：本地视频播放器、手机投送与内置 Ahz-Stream 接收",
   "main": "src/main.js",
   "private": true,
@@ -17,7 +17,7 @@
     "dist:portable": "npm run brand:receiver && npm run icon && electron-builder --win portable"
   },
   "devDependencies": {
-    "electron": "34.5.8",
+    "electron": "^45.5.0",
     "electron-builder": "26.18.0"
   },
   "build": {

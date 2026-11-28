@@ -93,3 +93,14 @@ test('receiver UI exposes health details and sanitized diagnostic export', () =>
   assert.match(main, /Port 7000 did not open; restarting once/);
   assert.match(preload, /exportAirplayDiagnostics/);
 });
+
+test('update prompt and open media sources are available', () => {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  const renderer = fs.readFileSync(rendererPath, 'utf8');
+
+  assert.match(html, /id="appUpdateButton"/);
+  assert.match(html, /data-plugin-key="archive"/);
+  assert.match(html, /data-plugin-key="wikimedia"/);
+  assert.match(html, /data-plugin-key="blender"/);
+  assert.match(renderer, /checkForAppUpdate\(\)/);
+});

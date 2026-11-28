@@ -18,6 +18,7 @@
           <span>Ahz TV</span>
         </div>
         <div class="titlebar-drag"></div>
+        <button class="app-update-button" id="appUpdateButton" hidden></button>
         <div class="window-controls" aria-label="窗口控制">
           <button class="window-button" data-window-action="minimize" title="最小化" aria-label="最小化">
             <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5h8" /></svg>
@@ -224,7 +225,7 @@
                       <p class="shelf-kicker">ONLINE SOURCES</p>
                       <h2 id="pluginSectionTitle">在线片源</h2>
                     </div>
-                    <span class="third-party-pill">第三方内容</span>
+                    <span class="third-party-pill">第三方 / 开放媒体</span>
                   </header>
                   <div class="media-shelf plugin-shelf" id="pluginGrid">
                     <article class="media-card" data-plugin-card="redfruit">
@@ -288,6 +289,36 @@
                       </button>
                       <div class="media-card-info"><strong>芒果 TV</strong><small>第三方网页插件</small></div>
                       <button class="favorite-button" data-favorite-key="mgtv" aria-label="收藏芒果 TV" aria-pressed="false">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 3 2 4.1 4.5.7-3.3 3.2.8 4.5-4-2.1-4 2.1.8-4.5-3.3-3.2 4.5-.7z" /></svg>
+                      </button>
+                    </article>
+                    <article class="media-card" data-plugin-card="archive">
+                      <button class="media-card-open plugin-open" data-plugin-key="archive" data-url="https://archive.org/details/feature_films">
+                        <span class="media-poster poster-archive"><span class="poster-mark">IA</span><strong>Internet Archive</strong><small>PUBLIC DOMAIN</small></span>
+                        <span class="card-play-hint"><svg viewBox="0 0 20 20"><path d="M7 4.5v11L16 10z" /></svg></span>
+                      </button>
+                      <div class="media-card-info"><strong>Internet Archive</strong><small>开放媒体 · 公共领域</small></div>
+                      <button class="favorite-button" data-favorite-key="archive" aria-label="收藏 Internet Archive" aria-pressed="false">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 3 2 4.1 4.5.7-3.3 3.2.8 4.5-4-2.1-4 2.1.8-4.5-3.3-3.2 4.5-.7z" /></svg>
+                      </button>
+                    </article>
+                    <article class="media-card" data-plugin-card="wikimedia">
+                      <button class="media-card-open plugin-open" data-plugin-key="wikimedia" data-url="https://commons.wikimedia.org/wiki/Category:Videos">
+                        <span class="media-poster poster-wikimedia"><span class="poster-mark">W</span><strong>Wikimedia Commons</strong><small>OPEN VIDEO</small></span>
+                        <span class="card-play-hint"><svg viewBox="0 0 20 20"><path d="M7 4.5v11L16 10z" /></svg></span>
+                      </button>
+                      <div class="media-card-info"><strong>Wikimedia Commons</strong><small>开放媒体 · CC 授权</small></div>
+                      <button class="favorite-button" data-favorite-key="wikimedia" aria-label="收藏 Wikimedia Commons" aria-pressed="false">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 3 2 4.1 4.5.7-3.3 3.2.8 4.5-4-2.1-4 2.1.8-4.5-3.3-3.2 4.5-.7z" /></svg>
+                      </button>
+                    </article>
+                    <article class="media-card" data-plugin-card="blender">
+                      <button class="media-card-open plugin-open" data-plugin-key="blender" data-url="https://studio.blender.org/films/">
+                        <span class="media-poster poster-blender"><span class="poster-mark">B</span><strong>Blender Open Movies</strong><small>OPEN FILMS</small></span>
+                        <span class="card-play-hint"><svg viewBox="0 0 20 20"><path d="M7 4.5v11L16 10z" /></svg></span>
+                      </button>
+                      <div class="media-card-info"><strong>Blender Open Movies</strong><small>开放媒体 · 开源电影</small></div>
+                      <button class="favorite-button" data-favorite-key="blender" aria-label="收藏 Blender Open Movies" aria-pressed="false">
                         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 3 2 4.1 4.5.7-3.3 3.2.8 4.5-4-2.1-4 2.1.8-4.5-3.3-3.2 4.5-.7z" /></svg>
                       </button>
                     </article>
@@ -501,9 +532,9 @@
         <div class="sheet-glow"></div>
         <header class="sheet-header">
           <div>
-            <p class="eyebrow">THIRD-PARTY SOURCES</p>
+            <p class="eyebrow">SOURCES & OPEN MEDIA</p>
             <h2 id="providerTitle">在线片源</h2>
-            <p>选择后将打开对应平台的官方网页；内容、会员和账号均由原平台提供。</p>
+            <p>第三方平台打开其官方网站；开放媒体入口提供公共领域或授权内容，并标明来源。</p>
           </div>
           <button class="sheet-close" id="dismissProviders" aria-label="关闭">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10m0-10L5 15" /></svg>
@@ -538,13 +569,25 @@
             <span class="provider-logo provider-migu">M</span><span><strong>咪咕视频</strong><small>第三方 · 体育 · 影视</small></span>
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6" /></svg>
           </button>
+          <button class="provider-card" data-plugin-key="archive" data-url="https://archive.org/details/feature_films">
+            <span class="provider-logo provider-archive">IA</span><span><strong>Internet Archive</strong><small>开放媒体 · 公共领域电影</small></span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6" /></svg>
+          </button>
+          <button class="provider-card" data-plugin-key="wikimedia" data-url="https://commons.wikimedia.org/wiki/Category:Videos">
+            <span class="provider-logo provider-wikimedia">W</span><span><strong>Wikimedia Commons</strong><small>开放媒体 · CC 授权视频</small></span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6" /></svg>
+          </button>
+          <button class="provider-card" data-plugin-key="blender" data-url="https://studio.blender.org/films/">
+            <span class="provider-logo provider-blender">B</span><span><strong>Blender Open Movies</strong><small>开放媒体 · 开源电影</small></span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6" /></svg>
+          </button>
           <button class="provider-card" id="dialogOpenLocal">
             <span class="provider-logo provider-local"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5v11L18 12z" /></svg></span>
             <span><strong>打开本地视频</strong><small>在自己的电脑上播放</small></span>
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6" /></svg>
           </button>
         </div>
-        <p class="provider-note">插件不会下载、破解或转存视频。登录、会员与播放均受各平台规则约束。</p>
+        <p class="provider-note">Ahz TV 不会下载、破解或转存视频。第三方平台登录和会员规则，以及开放媒体的署名与许可要求，均由对应来源决定。</p>
       </section>
     </div>
 

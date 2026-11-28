@@ -2,7 +2,7 @@
 
 一个电视端风格的 Windows 本地视频播放器、手机投送与无线投屏入口。
 
-当前版本：`1.6.0`
+当前版本：`1.7.0`
 
 - 默认打开 Ahz TV 自己的电视媒体中心首页
 - 打开电脑中的 MP4、WebM、MOV 等视频，并使用自定义播放控件播放
@@ -15,6 +15,8 @@
 - Ahz-Stream 状态显示监听、连接、实际分辨率与编码
 - 支持脱敏诊断导出和端口异常自动恢复
 - 画质与画幅偏好统一保存在本机设置中
+- 自动检查 GitHub 新版本并提示，当前因未签名不静默安装
+- 提供 Internet Archive、Wikimedia Commons 和 Blender Open Movies 开放媒体入口
 - 新环境首次启用 Ahz-Stream 时默认使用 4K、HEVC 和 60 FPS
 - 在“最近播放”和“我的收藏”中维护本机记录
 - 通过显式标注的第三方网页插件打开红果短剧、哔哩哔哩、腾讯视频、
@@ -112,6 +114,8 @@ Ahz-Stream 基于开源项目 `moieric11/AirPlay-Windows v0.5.0`。许可证、
 
 参与开发前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 和
 [SECURITY.md](SECURITY.md)。
+
+发布与代码签名流程见 [docs/RELEASING.md](docs/RELEASING.md)。
 
 ## 非官方声明
 

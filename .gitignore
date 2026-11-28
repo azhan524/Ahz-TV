@@ -4,6 +4,9 @@ artifacts/
 build/icon.png
 *.log
 *.tmp
+*.pfx
+*.p12
+*.cer
 .env
 .env.*
 .vscode/

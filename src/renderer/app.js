@@ -61,6 +61,30 @@ const PLUGINS = {
     mark: 'M',
     logoClass: 'provider-migu',
     summary: '体育 · 影视 · 动漫'
+  },
+  archive: {
+    label: 'Internet Archive',
+    url: 'https://archive.org/details/feature_films',
+    host: 'archive.org',
+    mark: 'IA',
+    logoClass: 'provider-archive',
+    summary: '公共领域 · 老电影 · 开放影像'
+  },
+  wikimedia: {
+    label: 'Wikimedia Commons',
+    url: 'https://commons.wikimedia.org/wiki/Category:Videos',
+    host: 'commons.wikimedia.org',
+    mark: 'W',
+    logoClass: 'provider-wikimedia',
+    summary: 'CC 授权 · 公共领域 · 开放视频'
+  },
+  blender: {
+    label: 'Blender Open Movies',
+    url: 'https://studio.blender.org/films/',
+    host: 'studio.blender.org',
+    mark: 'B',
+    logoClass: 'provider-blender',
+    summary: '开源电影 · 原始短片'
   }
 };
 
@@ -77,6 +101,7 @@ const reloadPage = document.querySelector('#reloadPage');
 const openInBrowser = document.querySelector('#openInBrowser');
 const toggleFullscreen = document.querySelector('#toggleFullscreen');
 const exitFullscreenButton = document.querySelector('#exitFullscreenButton');
+const appUpdateButton = document.querySelector('#appUpdateButton');
 const pageTitle = document.querySelector('#pageTitle');
 const pageKicker = document.querySelector('#pageKicker');
 const loadState = document.querySelector('#loadState');
@@ -1140,6 +1165,11 @@ toggleFullscreen.addEventListener('click', () => {
 exitFullscreenButton.addEventListener('click', () => {
   window.desktop.windowAction('toggle-fullscreen');
 });
+appUpdateButton.addEventListener('click', () => {
+  if (appUpdateButton.dataset.url) {
+    window.desktop.openExternal(appUpdateButton.dataset.url);
+  }
+});
 openProviders.addEventListener('click', openProviderDialog);
 closeProviders.addEventListener('click', closeProviderDialog);
 dismissProviders.addEventListener('click', closeProviderDialog);
@@ -1471,8 +1501,22 @@ async function initializeStoredSettings() {
   setAirplayQualityValue(airplayQualityValue, { persist: false, sync: false });
 }
 
+async function checkForAppUpdate() {
+  try {
+    const update = await window.desktop.checkForUpdates();
+    if (!update?.available || !update.url) return;
+    appUpdateButton.textContent = `发现 v${update.latestVersion}`;
+    appUpdateButton.dataset.url = update.url;
+    appUpdateButton.hidden = false;
+    showToast(`发现新版本 v${update.latestVersion}，点击右上角更新提示查看`, 7200);
+  } catch {
+    // Update checks are best-effort and must not block startup.
+  }
+}
+
 setProjectionFrameMode(projectionFrameMode, { persist: false });
 setAirplayQualityValue(airplayQualityValue, { persist: false, sync: false });
 initializeStoredSettings();
+checkForAppUpdate();
 showHome('home');
 refreshAirplayExtensionStatus();

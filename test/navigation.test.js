@@ -47,5 +47,7 @@ test('active navigation follows red-fruit categories and providers', () => {
   assert.equal(getActiveNavigation(`${RED_FRUIT_ORIGIN}/category/ai-drama`), 'ai-drama');
   assert.equal(getActiveNavigation(`${RED_FRUIT_ORIGIN}/rank/hot-drama`), 'rankings');
   assert.equal(getActiveNavigation('https://www.bilibili.com/anime/'), 'provider-bilibili');
+  assert.equal(getActiveNavigation('https://archive.org/details/feature_films'), 'provider-archive');
+  assert.equal(getActiveNavigation('https://studio.blender.org/films/'), 'provider-blender');
   assert.equal(getActiveNavigation('https://example.com/'), '');
 });

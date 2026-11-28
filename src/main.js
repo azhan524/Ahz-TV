@@ -24,6 +24,7 @@ const {
 const { getUrlProtocol, isWebUrl } = require('./navigation');
 const { startPhoneCast, stopPhoneCast } = require('./phone-cast');
 const { SettingsStore } = require('./settings-store');
+const { checkForUpdate } = require('./update-checker');
 
 const APP_NAME = 'Ahz TV';
 const APP_ID = 'com.local.ahz.tv';
@@ -1034,6 +1035,17 @@ ipcMain.handle('app-settings:get', () => (
 ipcMain.handle('app-settings:update', (_event, patch) => (
   settingsStore?.update(patch) || null
 ));
+ipcMain.handle('update:check', async () => {
+  try {
+    return await checkForUpdate({ currentVersion: app.getVersion() });
+  } catch (error) {
+    return {
+      available: false,
+      currentVersion: app.getVersion(),
+      error: error.name === 'AbortError' ? '检查更新超时' : error.message
+    };
+  }
+});
 ipcMain.handle('airplay:export-diagnostics', async () => {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');

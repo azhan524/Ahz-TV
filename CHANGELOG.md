@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.0 - 2026-11-29
+
+- Upgraded Electron from 34.5.8 to 45.5.0.
+- Added best-effort GitHub release checks with a visible update prompt.
+- Kept update installation manual because release binaries are currently
+  unsigned.
+- Added Internet Archive, Wikimedia Commons, and Blender Open Movies links.
+- Added code-signing and release instructions.
+
 ## 1.6.0 - 2026-11-29
 
 - Added receiver health states for launch, listening, connection, recovery,

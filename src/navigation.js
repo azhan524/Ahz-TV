@@ -16,7 +16,10 @@ const VIDEO_PROVIDERS = [
   { key: 'iqiyi', label: '爱奇艺', url: 'https://www.iqiyi.com/' },
   { key: 'youku', label: '优酷', url: 'https://www.youku.com/' },
   { key: 'mgtv', label: '芒果 TV', url: 'https://www.mgtv.com/' },
-  { key: 'migu', label: '咪咕视频', url: 'https://www.miguvideo.com/' }
+  { key: 'migu', label: '咪咕视频', url: 'https://www.miguvideo.com/' },
+  { key: 'archive', label: 'Internet Archive', url: 'https://archive.org/details/feature_films' },
+  { key: 'wikimedia', label: 'Wikimedia Commons', url: 'https://commons.wikimedia.org/wiki/Category:Videos' },
+  { key: 'blender', label: 'Blender Open Movies', url: 'https://studio.blender.org/films/' }
 ];
 
 function isWebUrl(value) {
