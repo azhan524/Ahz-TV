@@ -12,11 +12,18 @@ const {
 } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
+const net = require('node:net');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const QRCode = require('qrcode');
+const {
+  applyAirplayLogLine,
+  createAirplayHealth,
+  sanitizeDiagnosticLine
+} = require('./airplay-monitor');
 const { getUrlProtocol, isWebUrl } = require('./navigation');
 const { startPhoneCast, stopPhoneCast } = require('./phone-cast');
+const { SettingsStore } = require('./settings-store');
 
 const APP_NAME = 'Ahz TV';
 const APP_ID = 'com.local.ahz.tv';
@@ -42,8 +49,17 @@ const ARTIFACTS_DIR = path.join(process.cwd(), 'artifacts');
 const WINDOW_STATE_FILE = () => path.join(app.getPath('userData'), 'window-state.json');
 
 let mainWindow = null;
+let settingsStore = null;
 let smokeFinished = false;
 let airplayExtensionProcess = null;
+let airplayHealth = createAirplayHealth();
+let airplayQuality = 'original';
+let airplayStopping = false;
+let airplayAutoRestartUsed = false;
+let airplayLogBuffers = { stdout: '', stderr: '' };
+let airplayDiagnostics = [];
+let airplayProbeTimers = [];
+let airplayStatusTimer = null;
 let lastBlockedProtocol = '';
 let lastBlockedProtocolAt = 0;
 const securedGuestSessions = new WeakSet();
@@ -139,21 +155,132 @@ function ensureAirplayStreamDefaults(quality = 'original') {
 function airplayExtensionStatus() {
   const available = fs.existsSync(airplayExtensionExecutable());
   const running = Boolean(airplayExtensionProcess && airplayExtensionProcess.exitCode === null);
+  const profile = AIRPLAY_QUALITY_PROFILES[airplayQuality]
+    || AIRPLAY_QUALITY_PROFILES.original;
   return {
     available,
     running,
     pid: running ? airplayExtensionProcess.pid : null,
-    receiverName: 'Ahz-Stream'
+    receiverName: 'Ahz-Stream',
+    quality: airplayQuality,
+    health: {
+      ...airplayHealth,
+      advertisedWidth: airplayHealth.advertisedWidth || profile.width,
+      advertisedHeight: airplayHealth.advertisedHeight || profile.height
+    },
+    diagnosticsCount: airplayDiagnostics.length
   };
 }
 
 function sendAirplayExtensionStatus() {
+  airplayStatusTimer = null;
   sendToMainWindow('airplay:status', airplayExtensionStatus());
 }
 
-function startAirplayExtension({ quality = 'original' } = {}) {
+function scheduleAirplayExtensionStatus() {
+  if (airplayStatusTimer) return;
+  airplayStatusTimer = setTimeout(sendAirplayExtensionStatus, 40);
+}
+
+function appendAirplayDiagnostic(source, rawLine) {
+  const line = sanitizeDiagnosticLine(rawLine);
+  if (!line) return;
+  airplayDiagnostics.push(`[${new Date().toISOString()}] [${source}] ${line}`);
+  if (airplayDiagnostics.length > 240) {
+    airplayDiagnostics.splice(0, airplayDiagnostics.length - 240);
+  }
+  applyAirplayLogLine(airplayHealth, line);
+  scheduleAirplayExtensionStatus();
+}
+
+function consumeAirplayLog(streamName, chunk) {
+  airplayLogBuffers[streamName] += chunk;
+  const lines = airplayLogBuffers[streamName].split(/\r?\n/);
+  airplayLogBuffers[streamName] = lines.pop() || '';
+  for (const line of lines) {
+    appendAirplayDiagnostic(streamName, line);
+  }
+}
+
+function clearAirplayProbeTimers() {
+  for (const timer of airplayProbeTimers) {
+    clearTimeout(timer);
+  }
+  airplayProbeTimers = [];
+}
+
+function probeAirplayPort(port = 7000, timeoutMs = 900) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port });
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once('connect', () => finish(true));
+    socket.once('timeout', () => finish(false));
+    socket.once('error', () => finish(false));
+  });
+}
+
+function recoverAirplayExtension() {
+  if (
+    airplayAutoRestartUsed
+    || !airplayExtensionProcess
+    || airplayExtensionProcess.exitCode !== null
+  ) {
+    return;
+  }
+  airplayAutoRestartUsed = true;
+  airplayHealth.state = 'restarting';
+  airplayHealth.listening = false;
+  appendAirplayDiagnostic('monitor', 'Port 7000 did not open; restarting once');
+  airplayStopping = true;
+  airplayExtensionProcess.kill();
+  setTimeout(() => {
+    airplayStopping = false;
+    startAirplayExtension({ quality: airplayQuality, recovery: true });
+  }, 700);
+}
+
+function scheduleAirplayProbe(attempt = 0) {
+  const timer = setTimeout(async () => {
+    if (!airplayExtensionProcess || airplayExtensionProcess.exitCode !== null) {
+      return;
+    }
+    const listening = await probeAirplayPort();
+    if (!airplayExtensionProcess || airplayExtensionProcess.exitCode !== null) {
+      return;
+    }
+    airplayHealth.listening = listening;
+    if (listening) {
+      if (airplayHealth.state !== 'connected' && airplayHealth.state !== 'error') {
+        airplayHealth.state = 'waiting';
+      }
+      scheduleAirplayExtensionStatus();
+      return;
+    }
+    if (attempt < 1) {
+      scheduleAirplayProbe(attempt + 1);
+    } else {
+      recoverAirplayExtension();
+    }
+  }, attempt === 0 ? 1600 : 2400);
+  airplayProbeTimers.push(timer);
+}
+
+function startAirplayExtension({ quality = 'original', recovery = false } = {}) {
+  ensureAirplayStreamDefaults(quality);
+  airplayQuality = quality;
   if (airplayExtensionProcess && airplayExtensionProcess.exitCode === null) {
-    return airplayExtensionStatus();
+    if (!recovery) {
+      return airplayExtensionStatus();
+    }
+    airplayExtensionProcess.kill();
+    airplayExtensionProcess = null;
   }
 
   const executable = airplayExtensionExecutable();
@@ -161,32 +288,68 @@ function startAirplayExtension({ quality = 'original' } = {}) {
     throw new Error('内置 Ahz-Stream 接收器文件缺失');
   }
 
-  ensureAirplayStreamDefaults(quality);
-  airplayExtensionProcess = spawn(executable, [], {
+  if (!recovery) {
+    airplayAutoRestartUsed = false;
+  }
+  clearAirplayProbeTimers();
+  airplayStopping = false;
+  airplayHealth = createAirplayHealth();
+  airplayHealth.state = 'launching';
+  airplayLogBuffers = { stdout: '', stderr: '' };
+  if (!recovery) {
+    airplayDiagnostics = [];
+  }
+  appendAirplayDiagnostic('monitor', `Starting Ahz-Stream with quality ${quality}`);
+  airplayExtensionProcess = spawn(executable, ['--log'], {
     cwd: airplayExtensionDirectory(),
     windowsHide: false,
     detached: false,
-    stdio: 'ignore'
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+  airplayExtensionProcess.stdout.setEncoding('utf8');
+  airplayExtensionProcess.stderr.setEncoding('utf8');
+  airplayExtensionProcess.stdout.on('data', (chunk) => consumeAirplayLog('stdout', chunk));
+  airplayExtensionProcess.stderr.on('data', (chunk) => consumeAirplayLog('stderr', chunk));
+
+  const launchedProcess = airplayExtensionProcess;
+  launchedProcess.once('error', (error) => {
+    if (airplayExtensionProcess?.pid !== launchedProcess.pid) return;
+    airplayHealth.state = 'error';
+    airplayHealth.lastError = sanitizeDiagnosticLine(error.message);
+    appendAirplayDiagnostic('monitor', `Receiver error: ${error.message}`);
+    airplayExtensionProcess = null;
+    scheduleAirplayExtensionStatus();
+  });
+  launchedProcess.once('exit', (code) => {
+    if (airplayExtensionProcess?.pid !== launchedProcess.pid) return;
+    clearAirplayProbeTimers();
+    airplayExtensionProcess = null;
+    airplayHealth.listening = false;
+    airplayHealth.connected = false;
+    if (airplayHealth.state !== 'restarting') {
+      airplayHealth.state = airplayStopping ? 'stopped' : 'error';
+      if (!airplayStopping) {
+        airplayHealth.lastError = `Receiver exited with code ${code ?? 'unknown'}`;
+      }
+    }
+    appendAirplayDiagnostic('monitor', `Receiver exited with code ${code ?? 'unknown'}`);
+    scheduleAirplayExtensionStatus();
   });
 
-  airplayExtensionProcess.once('error', () => {
-    airplayExtensionProcess = null;
-    sendAirplayExtensionStatus();
-  });
-  airplayExtensionProcess.once('exit', () => {
-    airplayExtensionProcess = null;
-    sendAirplayExtensionStatus();
-  });
-
-  sendAirplayExtensionStatus();
+  scheduleAirplayProbe();
+  scheduleAirplayExtensionStatus();
   return airplayExtensionStatus();
 }
 
 function stopAirplayExtension() {
+  airplayStopping = true;
+  clearAirplayProbeTimers();
   if (airplayExtensionProcess && airplayExtensionProcess.exitCode === null) {
     airplayExtensionProcess.kill();
   }
   airplayExtensionProcess = null;
+  airplayHealth = createAirplayHealth();
+  appendAirplayDiagnostic('monitor', 'Receiver stopped by user');
   sendAirplayExtensionStatus();
   return true;
 }
@@ -423,7 +586,9 @@ function configurePermissions() {
         .test(item.name)
     );
 
-    callback(source ? { video: { id: source.id, name: source.name } } : {});
+    callback(source
+      ? { video: { id: source.id, name: source.name } }
+      : { video: null });
   }, { useSystemPicker: false });
 }
 
@@ -656,14 +821,37 @@ function createWindow() {
             "document.querySelector('#connectProjectionWindow').click()"
           );
         }, 1300);
-        setTimeout(() => finishSmokeTest(true, 'airplay window captured'), 4300);
+            setTimeout(async () => {
+              try {
+                const captured = await mainWindow.webContents.executeJavaScript(`
+                  (() => ({
+                    projectionVisible: !document.querySelector('#projectionView')?.hidden,
+                    projectionStreamActive: Boolean(document.querySelector('#projectionVideo')?.srcObject)
+                  }))()
+                `);
+                const success = captured.projectionVisible && captured.projectionStreamActive;
+                finishSmokeTest(
+                  success,
+                  success ? 'airplay window captured' : 'airplay window capture failed'
+                );
+              } catch (error) {
+                finishSmokeTest(false, `airplay capture check failed: ${error.message}`);
+              }
+            }, 4300);
       } else if (SMOKE_AIRPLAY_EXTENSION) {
         setTimeout(async () => {
           await mainWindow.webContents.executeJavaScript(
             "document.querySelector('#startAirplayExtension').click()"
           );
         }, 1200);
-        setTimeout(() => finishSmokeTest(true, 'airplay extension started'), 4300);
+            setTimeout(() => {
+              const status = airplayExtensionStatus();
+              const success = status.running && status.health.listening;
+              finishSmokeTest(
+                success,
+                success ? 'airplay extension started' : 'airplay extension did not listen'
+              );
+            }, 4300);
       } else if (SMOKE_PHONE_UPLOAD) {
         setTimeout(async () => {
           try {
@@ -829,9 +1017,47 @@ ipcMain.handle('phonecast:list-capture-sources', async () => {
 });
 
 ipcMain.handle('airplay:start', (_event, options) => startAirplayExtension(options));
-ipcMain.handle('airplay:set-quality', (_event, quality) => ensureAirplayStreamDefaults(quality));
+ipcMain.handle('airplay:set-quality', (_event, quality) => {
+  airplayQuality = quality in AIRPLAY_QUALITY_PROFILES ? quality : 'original';
+  ensureAirplayStreamDefaults(airplayQuality);
+  return airplayExtensionStatus();
+});
 ipcMain.handle('airplay:stop', () => stopAirplayExtension());
 ipcMain.handle('airplay:status', () => airplayExtensionStatus());
+ipcMain.handle('app-settings:get', () => (
+  settingsStore?.get() || {
+    schemaVersion: 1,
+    airplay: { quality: 'original', frameMode: 'auto' },
+    player: { frameMode: 'auto' }
+  }
+));
+ipcMain.handle('app-settings:update', (_event, patch) => (
+  settingsStore?.update(patch) || null
+));
+ipcMain.handle('airplay:export-diagnostics', async () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: '导出 Ahz-Stream 诊断',
+    defaultPath: path.join(
+      app.getPath('downloads'),
+      `Ahz-Stream-diagnostics-${stamp}.txt`
+    ),
+    filters: [{ name: 'Text', extensions: ['txt'] }]
+  });
+  if (result.canceled || !result.filePath) return null;
+  const report = [
+    `Ahz TV ${app.getVersion()}`,
+    `Generated: ${new Date().toISOString()}`,
+    `Quality: ${airplayQuality}`,
+    `Health: ${JSON.stringify(airplayExtensionStatus().health, null, 2)}`,
+    '',
+    '--- Sanitized receiver log ---',
+    ...airplayDiagnostics
+  ].join('\n');
+  await fs.promises.writeFile(result.filePath, `${report}\n`, 'utf8');
+  return result.filePath;
+});
 ipcMain.handle('airplay:open-notice', async () => {
   const notice = path.join(airplayExtensionDirectory(), 'EXTENSION_NOTICE.md');
   return shell.openPath(notice);
@@ -839,6 +1065,9 @@ ipcMain.handle('airplay:open-notice', async () => {
 
 app.whenReady().then(() => {
   nativeTheme.themeSource = 'dark';
+  settingsStore = new SettingsStore(
+    path.join(app.getPath('userData'), 'settings.json')
+  );
   configurePermissions();
   createWindow();
 

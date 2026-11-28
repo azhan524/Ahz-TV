@@ -1988,6 +1988,17 @@ body.is-maximized .restore-icon {
   color: #70dfb3 !important;
 }
 
+.built-in-airplay-detail {
+  margin-top: 4px !important;
+  color: #647680 !important;
+  font-size: 8.5px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.built-in-airplay-detail.is-error {
+  color: #ff9ca1 !important;
+}
+
 .phone-ios-note,
 .phone-cast-warning {
   color: #5b6872;

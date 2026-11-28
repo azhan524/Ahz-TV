@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.0 - 2026-11-29
+
+- Added receiver health states for launch, listening, connection, recovery,
+  errors, and disconnects.
+- Added actual stream codec and resolution reporting.
+- Added sanitized diagnostic export.
+- Added one-time port-7000 recovery.
+- Unified AirPlay quality and projection frame preferences in JSON settings.
+- Made AirPlay smoke checks require a real active capture or listener.
+
 ## 1.5.9 - 2026-11-29
 
 - Added readable receiver quality presets from 480p through 8K.

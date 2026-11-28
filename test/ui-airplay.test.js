@@ -78,3 +78,18 @@ test('receiver quality presets use readable labels and default to original', () 
   assert.match(main, /'8k': \{ width: 7680, height: 4320 \}/);
   assert.match(main, /original: \{ width: 3840, height: 2160 \}/);
 });
+
+test('receiver UI exposes health details and sanitized diagnostic export', () => {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  const renderer = fs.readFileSync(rendererPath, 'utf8');
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+  const preload = fs.readFileSync(path.join(__dirname, '..', 'src', 'preload.js'), 'utf8');
+
+  assert.match(html, /id="airplayExtensionDetail"/);
+  assert.match(html, /id="exportAirplayDiagnostics"/);
+  assert.match(renderer, /端口 7000 已监听/);
+  assert.match(renderer, /listCaptureSources\(\)/);
+  assert.match(main, /airplay:export-diagnostics/);
+  assert.match(main, /Port 7000 did not open; restarting once/);
+  assert.match(preload, /exportAirplayDiagnostics/);
+});

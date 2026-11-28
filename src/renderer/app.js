@@ -112,7 +112,9 @@ const connectAirplayFullscreenLabel = document.querySelector('#connectAirplayFul
 const airplayQuality = document.querySelector('#airplayQuality');
 const airplayQualityNote = document.querySelector('#airplayQualityNote');
 const stopAirplayExtension = document.querySelector('#stopAirplayExtension');
+const exportAirplayDiagnostics = document.querySelector('#exportAirplayDiagnostics');
 const airplayExtensionState = document.querySelector('#airplayExtensionState');
+const airplayExtensionDetail = document.querySelector('#airplayExtensionDetail');
 const viewAirplayNotice = document.querySelector('#viewAirplayNotice');
 const projectionView = document.querySelector('#projectionView');
 const projectionVideo = document.querySelector('#projectionVideo');
@@ -156,8 +158,8 @@ let phoneCastInfo = null;
 let phoneCastStarting = false;
 let phoneCastRefreshTimer = null;
 let projectionStream = null;
-let projectionFrameMode = localStorage.getItem('ahz-tv:projection-frame') || 'auto';
-let airplayQualityValue = localStorage.getItem('ahz-tv:airplay-quality') || 'original';
+let projectionFrameMode = 'auto';
+let airplayQualityValue = 'original';
 let airplayExtensionRunning = false;
 
 const AIRPLAY_QUALITY_NOTES = {
@@ -689,7 +691,11 @@ function applyProjectionFrame() {
 function setProjectionFrameMode(mode, { persist = true } = {}) {
   projectionFrameMode = ['auto', 'contain', 'cover'].includes(mode) ? mode : 'auto';
   if (persist) {
-    localStorage.setItem('ahz-tv:projection-frame', projectionFrameMode);
+    window.desktop.updateSettings({
+      airplay: { frameMode: projectionFrameMode }
+    }).catch(() => {
+      showToast('画幅偏好保存失败', 3600);
+    });
   }
   projectionFrameOptions.forEach((option) => {
     option.classList.toggle('is-active', option.dataset.frameMode === projectionFrameMode);
@@ -793,19 +799,51 @@ async function openPhoneCastDialog() {
 function renderAirplayExtensionStatus(status) {
   if (!status?.available) {
     airplayExtensionState.textContent = 'Ahz-Stream 接收器文件不可用';
+    airplayExtensionDetail.textContent = '';
     airplayExtensionState.classList.remove('is-running');
+    airplayExtensionDetail.classList.add('is-error');
     startAirplayExtension.disabled = true;
     stopAirplayExtension.disabled = true;
     return;
   }
 
+  const health = status.health || {};
+  const stateLabels = {
+    launching: '正在启动 Ahz-Stream…',
+    waiting: '等待手机连接',
+    connected: '手机已连接',
+    restarting: '接收器异常，正在自动恢复…',
+    error: 'Ahz-Stream 接收器异常',
+    stopped: 'Ahz-Stream 未启动'
+  };
   airplayExtensionRunning = Boolean(status.running);
   startAirplayExtension.disabled = status.running;
   stopAirplayExtension.disabled = !status.running;
-  airplayExtensionState.classList.toggle('is-running', status.running);
-  airplayExtensionState.textContent = status.running
-    ? `接收器运行中 · 请选择 ${status.receiverName}`
-    : 'Ahz-Stream 未启动';
+  airplayExtensionState.classList.toggle(
+    'is-running',
+    health.state === 'waiting' || health.state === 'connected'
+  );
+  airplayExtensionDetail.classList.toggle('is-error', health.state === 'error');
+  airplayExtensionState.textContent = stateLabels[health.state]
+    || (status.running ? 'Ahz-Stream 运行中' : 'Ahz-Stream 未启动');
+
+  const advertised = health.advertisedWidth && health.advertisedHeight
+    ? `画质上限 ${health.advertisedWidth}×${health.advertisedHeight}`
+    : `画质 ${status.quality || 'original'}`;
+  if (health.state === 'connected') {
+    const stream = health.width && health.height
+      ? `${health.codec || '视频'} · ${health.width}×${health.height}`
+      : '视频流已连接';
+    airplayExtensionDetail.textContent = `${stream} · ${advertised}`;
+  } else if (health.state === 'waiting') {
+    airplayExtensionDetail.textContent = `端口 7000 已监听 · 请在手机选择 Ahz-Stream · ${advertised}`;
+  } else if (health.state === 'error') {
+    airplayExtensionDetail.textContent = health.lastError || '请导出诊断后重试';
+  } else if (health.state === 'launching' || health.state === 'restarting') {
+    airplayExtensionDetail.textContent = advertised;
+  } else {
+    airplayExtensionDetail.textContent = '启动后可查看监听、连接和实际分辨率';
+  }
 }
 
 function setAirplayQualityValue(value, { persist = true, sync = true, notify = false } = {}) {
@@ -813,7 +851,11 @@ function setAirplayQualityValue(value, { persist = true, sync = true, notify = f
   airplayQuality.value = airplayQualityValue;
   airplayQualityNote.textContent = AIRPLAY_QUALITY_NOTES[airplayQualityValue];
   if (persist) {
-    localStorage.setItem('ahz-tv:airplay-quality', airplayQualityValue);
+    window.desktop.updateSettings({
+      airplay: { quality: airplayQualityValue }
+    }).catch(() => {
+      showToast('画质偏好保存失败', 3600);
+    });
   }
   if (sync) {
     window.desktop.setAirplayQuality(airplayQualityValue).catch(() => {
@@ -902,6 +944,12 @@ async function connectProjectionCapture({ fullScreen = false } = {}) {
   try {
     stopProjectionCapture();
     normalVideoCleanup();
+    const sources = await window.desktop.listCaptureSources();
+    if (!sources.some((source) => source.likelyPhone)) {
+      const error = new Error('没有检测到 Ahz-Stream 或其他投屏窗口');
+      error.name = 'NotAllowedError';
+      throw error;
+    }
     projectionStream = await navigator.mediaDevices.getDisplayMedia({
       audio: false,
       video: true
@@ -1106,6 +1154,19 @@ connectProjectionWindow.addEventListener('click', connectProjectionCapture);
 startAirplayExtension.addEventListener('click', launchAirplayExtension);
 airplayQuality.addEventListener('change', () => {
   setAirplayQualityValue(airplayQuality.value, { notify: true });
+});
+exportAirplayDiagnostics.addEventListener('click', async () => {
+  exportAirplayDiagnostics.disabled = true;
+  try {
+    const filePath = await window.desktop.exportAirplayDiagnostics();
+    if (filePath) {
+      showToast(`诊断已导出：${filePath}`, 6200);
+    }
+  } catch (error) {
+    showToast(`诊断导出失败：${error.message}`, 5200);
+  } finally {
+    exportAirplayDiagnostics.disabled = false;
+  }
 });
 connectAirplayFullscreen.addEventListener('click', launchAirplayFullscreenCapture);
 stopAirplayExtension.addEventListener('click', haltAirplayExtension);
@@ -1381,7 +1442,37 @@ window.desktop.getState().then((state) => {
   }
 });
 
+async function initializeStoredSettings() {
+  try {
+    const settings = await window.desktop.getSettings();
+    projectionFrameMode = settings?.airplay?.frameMode || 'auto';
+    airplayQualityValue = settings?.airplay?.quality || 'original';
+
+    const legacyFrame = localStorage.getItem('ahz-tv:projection-frame');
+    const legacyQuality = localStorage.getItem('ahz-tv:airplay-quality');
+    const patch = { airplay: {} };
+    if (['auto', 'contain', 'cover'].includes(legacyFrame)) {
+      projectionFrameMode = legacyFrame;
+      patch.airplay.frameMode = legacyFrame;
+    }
+    if (Object.hasOwn(AIRPLAY_QUALITY_NOTES, legacyQuality)) {
+      airplayQualityValue = legacyQuality;
+      patch.airplay.quality = legacyQuality;
+    }
+    if (Object.keys(patch.airplay).length > 0) {
+      await window.desktop.updateSettings(patch);
+      localStorage.removeItem('ahz-tv:projection-frame');
+      localStorage.removeItem('ahz-tv:airplay-quality');
+    }
+  } catch {
+    // Defaults remain usable if user settings cannot be read.
+  }
+  setProjectionFrameMode(projectionFrameMode, { persist: false });
+  setAirplayQualityValue(airplayQualityValue, { persist: false, sync: false });
+}
+
 setProjectionFrameMode(projectionFrameMode, { persist: false });
 setAirplayQualityValue(airplayQualityValue, { persist: false, sync: false });
+initializeStoredSettings();
 showHome('home');
 refreshAirplayExtensionStatus();
