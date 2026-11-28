@@ -114,6 +114,9 @@ const airplayExtensionState = document.querySelector('#airplayExtensionState');
 const viewAirplayNotice = document.querySelector('#viewAirplayNotice');
 const projectionView = document.querySelector('#projectionView');
 const projectionVideo = document.querySelector('#projectionVideo');
+const projectionFrameButton = document.querySelector('#projectionFrameButton');
+const projectionFrameMenu = document.querySelector('#projectionFrameMenu');
+const projectionFrameOptions = [...document.querySelectorAll('[data-frame-mode]')];
 const closeProjection = document.querySelector('#closeProjection');
 const castImageView = document.querySelector('#castImageView');
 const castImage = document.querySelector('#castImage');
@@ -151,6 +154,7 @@ let phoneCastInfo = null;
 let phoneCastStarting = false;
 let phoneCastRefreshTimer = null;
 let projectionStream = null;
+let projectionFrameMode = localStorage.getItem('ahz-tv:projection-frame') || 'auto';
 let toastTimer = null;
 let loadingTimer = null;
 
@@ -645,6 +649,44 @@ function stopProjectionCapture() {
   projectionView.hidden = true;
 }
 
+function chooseProjectionFrame(sourceWidth, sourceHeight, targetWidth, targetHeight) {
+  if (projectionFrameMode === 'contain') return 'contain';
+  if (projectionFrameMode === 'cover') return 'cover';
+  if (!sourceWidth || !sourceHeight || !targetWidth || !targetHeight) return 'contain';
+
+  const sourceRatio = sourceWidth / sourceHeight;
+  const targetRatio = targetWidth / targetHeight;
+  // Auto only crops when the aspect ratios are close. Mirrored portrait
+  // screens and strongly letterboxed content remain fully visible.
+  return Math.abs(Math.log(sourceRatio / targetRatio)) <= 0.16 ? 'cover' : 'contain';
+}
+
+function applyProjectionFrame() {
+  const fit = chooseProjectionFrame(
+    projectionVideo.videoWidth,
+    projectionVideo.videoHeight,
+    projectionView.clientWidth,
+    projectionView.clientHeight
+  );
+  projectionView.classList.toggle('uses-cover', fit === 'cover');
+}
+
+function setProjectionFrameMode(mode, { persist = true } = {}) {
+  projectionFrameMode = ['auto', 'contain', 'cover'].includes(mode) ? mode : 'auto';
+  if (persist) {
+    localStorage.setItem('ahz-tv:projection-frame', projectionFrameMode);
+  }
+  projectionFrameOptions.forEach((option) => {
+    option.classList.toggle('is-active', option.dataset.frameMode === projectionFrameMode);
+  });
+  projectionFrameButton.textContent = {
+    auto: '画幅：自动适配',
+    contain: '画幅：还原画幅',
+    cover: '画幅：满屏播放'
+  }[projectionFrameMode];
+  applyProjectionFrame();
+}
+
 function showCastImage(media) {
   stopProjectionCapture();
   normalVideoCleanup();
@@ -827,6 +869,7 @@ async function connectProjectionCapture({ fullScreen = false } = {}) {
     });
     projectionVideo.srcObject = projectionStream;
     await projectionVideo.play().catch(() => {});
+    setProjectionFrameMode(projectionFrameMode, { persist: false });
     homeView.hidden = true;
     siteView.hidden = true;
     playerView.hidden = true;
@@ -1027,6 +1070,26 @@ closeProjection.addEventListener('click', async () => {
   await setWindowFullscreen(false);
   showHome('home');
 });
+projectionFrameButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const opening = projectionFrameMenu.hidden;
+  projectionFrameMenu.hidden = !opening;
+  projectionFrameButton.setAttribute('aria-expanded', String(opening));
+});
+projectionFrameOptions.forEach((option) => {
+  option.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setProjectionFrameMode(option.dataset.frameMode);
+    projectionFrameMenu.hidden = true;
+    projectionFrameButton.setAttribute('aria-expanded', 'false');
+  });
+});
+document.addEventListener('click', () => {
+  projectionFrameMenu.hidden = true;
+  projectionFrameButton.setAttribute('aria-expanded', 'false');
+});
+projectionVideo.addEventListener('loadedmetadata', applyProjectionFrame);
+window.addEventListener('resize', applyProjectionFrame);
 closeCastImage.addEventListener('click', () => showHome('home'));
 document.querySelector('#railHome').addEventListener('click', () => showHome('home'));
 browsePlugins.addEventListener('click', () => {
@@ -1273,5 +1336,6 @@ window.desktop.getState().then((state) => {
   }
 });
 
+setProjectionFrameMode(projectionFrameMode, { persist: false });
 showHome('home');
 refreshAirplayExtensionStatus();

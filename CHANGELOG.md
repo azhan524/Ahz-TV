@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.8 - 2026-11-29
+
+- Added adaptive framing controls for the projection view.
+- Added Auto, original aspect ratio, and fill-screen modes.
+- Persisted the selected framing mode locally.
+
 ## 1.5.7 - 2026-11-25
 
 - Prepared the project for public open-source distribution.

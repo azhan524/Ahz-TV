@@ -46,3 +46,21 @@ test('bundled receiver titlebar uses the Ahz-Stream wordmark', () => {
   assert.equal(binary.includes(Buffer.from('AirPlay Windows')), false);
   assert.equal(binary.includes(Buffer.from('Ahz-Stream     ')), true);
 });
+
+test('projection view exposes persistent adaptive framing controls', () => {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  const renderer = fs.readFileSync(rendererPath, 'utf8');
+
+  assert.match(html, /id="projectionFrameMenu"/);
+  assert.match(html, /data-frame-mode="auto"/);
+  assert.match(html, /data-frame-mode="contain"/);
+  assert.match(html, /data-frame-mode="cover"/);
+  assert.match(renderer, /ahz-tv:projection-frame/);
+  assert.match(renderer, /Math\.abs\(Math\.log\(sourceRatio \/ targetRatio\)\) <= 0\.16/);
+});
+
+test('capture source matching recognizes the renamed Ahz-Stream window', () => {
+  const main = fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
+
+  assert.match(main, /ahz\[\\s-\]\*stream/);
+});

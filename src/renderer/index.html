@@ -352,6 +352,26 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7" /></svg>
                 </button>
                 <div><p>WINDOWS WIRELESS DISPLAY</p><h2>手机实时投屏</h2></div>
+                <div class="projection-frame-control">
+                  <button class="projection-frame-button" id="projectionFrameButton" aria-expanded="false">
+                    画幅：自动适配
+                  </button>
+                  <section class="projection-frame-menu" id="projectionFrameMenu" hidden>
+                    <h3>画幅设置</h3>
+                    <button class="projection-frame-option" data-frame-mode="auto">
+                      <span><strong>自动适配（推荐）</strong><small>根据视频画幅自动适配</small></span>
+                      <span class="projection-frame-check" aria-hidden="true">✓</span>
+                    </button>
+                    <button class="projection-frame-option" data-frame-mode="contain">
+                      <span><strong>还原画幅</strong><small>保留原始比例，画面不裁切</small></span>
+                      <span class="projection-frame-check" aria-hidden="true">✓</span>
+                    </button>
+                    <button class="projection-frame-option" data-frame-mode="cover">
+                      <span><strong>满屏播放</strong><small>尽量铺满屏幕，画面可能会被裁切</small></span>
+                      <span class="projection-frame-check" aria-hidden="true">✓</span>
+                    </button>
+                  </section>
+                </div>
                 <span class="projection-live">LIVE</span>
               </header>
             </div>

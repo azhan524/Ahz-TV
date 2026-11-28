@@ -404,7 +404,7 @@ function configurePermissions() {
       fetchWindowIcons: false
     });
     const source = sources.find((item) =>
-      /无线|投屏|投影|手机|connect|wireless|project|airserver|airplay|uxplay|reflector|letsview|apowermirror|5kplayer|lonelyscreen|mirror|cast/i
+      /ahz[\s-]*stream|无线|投屏|投影|手机|connect|wireless|project|airserver|airplay|uxplay|reflector|letsview|apowermirror|5kplayer|lonelyscreen|mirror|cast/i
         .test(item.name)
     );
 
@@ -808,7 +808,7 @@ ipcMain.handle('phonecast:list-capture-sources', async () => {
     .map((source) => ({
       id: source.id,
       name: source.name,
-      likelyPhone: /无线|投屏|投影|手机|connect|wireless|project|airserver|airplay|uxplay|reflector|letsview|apowermirror|5kplayer|lonelyscreen|mirror|cast/i.test(source.name)
+      likelyPhone: /ahz[\s-]*stream|无线|投屏|投影|手机|connect|wireless|project|airserver|airplay|uxplay|reflector|letsview|apowermirror|5kplayer|lonelyscreen|mirror|cast/i.test(source.name)
     }))
     .slice(0, 80);
 });

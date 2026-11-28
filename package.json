@@ -1,6 +1,6 @@
 {
   "name": "ahz-tv",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "description": "Ahz TV：本地视频播放器、手机投送与内置 Ahz-Stream 接收",
   "main": "src/main.js",
   "private": true,

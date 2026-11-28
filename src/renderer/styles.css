@@ -1498,6 +1498,10 @@ body.is-maximized .restore-icon {
   object-fit: contain;
 }
 
+.projection-view.uses-cover video {
+  object-fit: cover;
+}
+
 .projection-header {
   position: absolute;
   z-index: 3;
@@ -1535,6 +1539,99 @@ body.is-maximized .restore-icon {
   font-size: 7px;
   font-weight: 800;
   letter-spacing: 0.1em;
+}
+
+.projection-frame-control {
+  position: relative;
+  margin-left: auto;
+}
+
+.projection-frame-button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 7px;
+  color: #dcebf2;
+  background: rgba(7, 14, 20, 0.7);
+  font-size: 8.5px;
+  cursor: pointer;
+}
+
+.projection-frame-button:hover,
+.projection-frame-button[aria-expanded="true"] {
+  border-color: rgba(53, 201, 255, 0.45);
+}
+
+.projection-frame-menu {
+  position: absolute;
+  z-index: 12;
+  top: 37px;
+  right: 0;
+  width: min(330px, 78vw);
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  color: #e8f4f8;
+  background: rgba(16, 23, 30, 0.98);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.48);
+}
+
+.projection-frame-menu[hidden] {
+  display: none;
+}
+
+.projection-frame-menu h3 {
+  margin: 7px 10px 9px;
+  font-size: 11px;
+}
+
+.projection-frame-option {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  color: #dce8ed;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.projection-frame-option:hover,
+.projection-frame-option.is-active {
+  background: rgba(53, 201, 255, 0.08);
+}
+
+.projection-frame-option span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.projection-frame-option strong {
+  font-size: 10px;
+}
+
+.projection-frame-option small {
+  color: #73838d;
+  font-size: 8.5px;
+}
+
+.projection-frame-check {
+  margin-left: auto;
+  color: #ff9a22;
+  opacity: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.projection-frame-option.is-active .projection-frame-check {
+  opacity: 1;
+}
+
+.projection-frame-control + .projection-live {
+  margin-left: 8px;
 }
 
 .error-panel {
